@@ -2,9 +2,22 @@ import { definePlugin } from "../core/plugins";
 import { FONT_FAMILY, loadFont } from "../ui/font";
 
 const PALETTES: Record<string, { accent: string; accentHover: string; }> = {
-    darkWorld: { accent: "#ff8c1a", accentHover: "#ffa64d" },
+    darkWorld: { accent: "#b48cff", accentHover: "#cdb3ff" },
+    orange: { accent: "#ff8c1a", accentHover: "#ffa64d" },
     crimson: { accent: "#e0243a", accentHover: "#ff4d5e" }
 };
+
+function accentFor(palette: string, custom: string) {
+    if (palette === "custom") {
+        const color = /^#[0-9a-f]{6}$/i.test(custom) ? custom : PALETTES.darkWorld.accent;
+        return { accent: color, accentHover: `color-mix(in srgb, ${color} 75%, white)` };
+    }
+    return PALETTES[palette];
+}
+
+/** The accent for Deltacord's own windows, set even when Discord keeps its own colors. */
+const uiAccentCss = ({ accent, accentHover }: { accent: string; accentHover: string; }) =>
+    `:root { --dc-accent: ${accent}; --dc-accent-hover: ${accentHover}; }\n`;
 
 const SELECTOR = ":root:root, .theme-dark.theme-dark, .theme-light.theme-light, .theme-darker.theme-darker, .theme-midnight.theme-midnight, .visual-refresh.visual-refresh";
 
@@ -81,7 +94,7 @@ function paletteCss({ accent, accentHover }: { accent: string; accentHover: stri
 export default definePlugin({
     id: "deltacordTheme",
     name: "Deltacord Theme",
-    description: "Deltacord's look: black, white and orange (or red), in the Determination Mono font.",
+    description: "Deltacord's look: black and white with a Dark World purple accent (or a color you pick), in the Determination Mono font.",
     enabledByDefault: true,
     settings: {
         palette: {
@@ -89,14 +102,20 @@ export default definePlugin({
             label: "Colors",
             default: "darkWorld",
             options: [
-                { label: "Dark World (black, white and orange)", value: "darkWorld" },
-                { label: "Crimson (black, white and red)", value: "crimson" },
+                { label: "Dark World (black, white and purple)", value: "darkWorld" },
+                { label: "Orange", value: "orange" },
+                { label: "Crimson (red)", value: "crimson" },
+                { label: "My own color", value: "custom" },
                 { label: "Discord's own colors", value: "off" }
             ]
         },
+        customAccent: { type: "color", label: "My own color", description: "Used when Colors is set to My own color.", default: "#b48cff" },
         font: { type: "boolean", label: "Determination Mono everywhere", description: "Use the pixel font for all of Discord's text.", default: true }
     },
-    css: s => (s.font ? fontCss() : "") + (PALETTES[s.palette] ? paletteCss(PALETTES[s.palette]) : ""),
+    css: s => {
+        const colors = accentFor(s.palette, s.customAccent);
+        return (s.font ? fontCss() : "") + (colors ? uiAccentCss(colors) + paletteCss(colors) : "");
+    },
     start() {
         void loadFont();
     }

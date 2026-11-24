@@ -9,7 +9,8 @@ export type SettingDef =
     | { type: "boolean"; label: string; description?: string; default: boolean; }
     | { type: "select"; label: string; description?: string; default: string; options: { label: string; value: string; }[]; }
     | { type: "slider"; label: string; description?: string; default: number; min: number; max: number; step: number; unit?: string; }
-    | { type: "text"; label: string; description?: string; default: string; placeholder?: string; };
+    | { type: "text"; label: string; description?: string; default: string; placeholder?: string; }
+    | { type: "color"; label: string; description?: string; default: string; };
 
 type Defaults<S extends Record<string, SettingDef>> = { [K in keyof S]: S[K]["default"] };
 

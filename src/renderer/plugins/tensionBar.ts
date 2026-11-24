@@ -24,7 +24,7 @@ function update(e: Event) {
     gauge.style.left = `${rect.right - 120}px`;
     gauge.style.top = `${rect.top - 26}px`;
     fill.style.width = `${Math.min(percent, 100)}%`;
-    fill.style.background = percent > 100 ? "#ff3b3b" : percent >= 90 ? "#ffcc33" : "#ff8c1a";
+    fill.style.background = percent > 100 ? "#ff3b3b" : percent >= 90 ? "#ffcc33" : "var(--dc-accent, #b48cff)";
     label.textContent = `TP ${percent}%`;
 }
 

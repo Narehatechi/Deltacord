@@ -82,7 +82,7 @@ export const VIEWER_CSS = `
 .dl-list { display: flex; flex-direction: column; gap: 10px; }
 .dl-entry { border: 2px solid rgb(255 255 255 / 0.35); border-left-width: 6px; padding: 10px 12px; }
 .dl-deleted { border-left-color: #ff3b3b; }
-.dl-edited { border-left-color: #ff8c1a; }
+.dl-edited { border-left-color: var(--dc-accent, #b48cff); }
 .dl-ghost { border-left-color: #fff; }
 .dl-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 6px; }
 .dl-tag { color: #a0a0a0; font-size: 12px; text-transform: uppercase; }
@@ -90,5 +90,5 @@ export const VIEWER_CSS = `
 .dl-meta { color: #a0a0a0; font-size: 12px; }
 .dl-before { color: #a0a0a0; text-decoration: line-through; white-space: pre-wrap; word-break: break-word; }
 .dl-content { white-space: pre-wrap; word-break: break-word; }
-.dl-file { display: block; color: #ff8c1a; margin-top: 4px; }
+.dl-file { display: block; color: var(--dc-accent, #b48cff); margin-top: 4px; }
 `;

@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { AppInfo, IPC, ScreenSource } from "../shared/ipc";
 import { appSettings, getData, getQuickCss, getSettings, setAppSettings, setData, setQuickCss, setSettings } from "./storage";
-import { checkForUpdates, initUpdater, installUpdate } from "./updater";
+import { checkForUpdates, checkIfStale, getStatus, initUpdater, installUpdate } from "./updater";
 
 const DISCORD_URL = "https://discord.com/app";
 const DISCORD_HOSTS = /^(?:[a-z0-9-]+\.)?discord(?:app)?\.com$/i;
@@ -89,6 +89,8 @@ function createWindow() {
             win?.hide();
         }
     });
+    win.on("focus", checkIfStale);
+    win.on("show", checkIfStale);
     win.on("closed", () => {
         win = undefined;
     });
@@ -106,17 +108,28 @@ function createWindow() {
     void win.loadURL(DISCORD_URL);
 }
 
-function createTray() {
-    tray = new Tray(join(ASSETS, process.platform === "win32" ? "icon.ico" : "icon.png"));
-    tray.setToolTip("Deltacord");
-    tray.setContextMenu(Menu.buildFromTemplate([
+function updateMenuItem(): Electron.MenuItemConstructorOptions {
+    const status = getStatus();
+    if (status.state === "ready") return { label: `Restart to Update to ${status.version}`, click: installUpdate };
+    if (status.state === "downloading") return { label: `Downloading ${status.version} (${status.percent}%)`, enabled: false };
+    return { label: "Check for Updates", click: () => void checkForUpdates(true) };
+}
+
+function buildTrayMenu() {
+    tray?.setContextMenu(Menu.buildFromTemplate([
         { label: "Open Deltacord", click: showWindow },
         { label: "Deltacord Settings", click: openSettings },
         { type: "separator" },
-        { label: "Check for Updates", click: () => checkForUpdates(true) },
+        updateMenuItem(),
         { type: "separator" },
         { label: "Quit Deltacord", click: () => { quitting = true; app.quit(); } }
     ]));
+}
+
+function createTray() {
+    tray = new Tray(join(ASSETS, process.platform === "win32" ? "icon.ico" : "icon.png"));
+    tray.setToolTip("Deltacord");
+    buildTrayMenu();
     tray.on("click", showWindow);
 }
 
@@ -126,7 +139,7 @@ function createMenu() {
             label: "Deltacord",
             submenu: [
                 { label: "Deltacord Settings", accelerator: "CmdOrCtrl+Alt+D", click: openSettings },
-                { label: "Check for Updates", click: () => checkForUpdates(true) },
+                { label: "Check for Updates", click: () => void checkForUpdates(true) },
                 { type: "separator" },
                 { label: "Quit Deltacord", accelerator: "CmdOrCtrl+Q", click: () => { quitting = true; app.quit(); } }
             ]
@@ -224,10 +237,8 @@ function setUpIpc() {
         app.exit(0);
     });
     ipcMain.handle(IPC.checkUpdates, () => checkForUpdates(true));
-    ipcMain.handle(IPC.installUpdate, () => {
-        quitting = true;
-        installUpdate();
-    });
+    ipcMain.handle(IPC.installUpdate, () => installUpdate());
+    ipcMain.on(IPC.updateState, e => { e.returnValue = getStatus(); });
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -251,6 +262,18 @@ if (!app.requestSingleInstanceLock()) {
         createMenu();
         createWindow();
         createTray();
-        initUpdater(status => win?.webContents.send(IPC.updateStatus, status));
+        initUpdater({
+            onChange(status) {
+                win?.webContents.send(IPC.updateStatus, status);
+                buildTrayMenu();
+            },
+            beforeInstall() {
+                // Really quit this time: no hiding in the tray while the installer replaces Deltacord.
+                quitting = true;
+                saveWindowState();
+                tray?.destroy();
+                tray = undefined;
+            }
+        });
     });
 }

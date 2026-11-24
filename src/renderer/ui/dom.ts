@@ -54,6 +54,12 @@ export function textInput(value: string, placeholder: string, onchange: (value: 
     return el;
 }
 
+export function colorInput(value: string, onchange: (value: string) => void) {
+    const el = h("input", { type: "color", class: "dc-color", value });
+    el.addEventListener("change", () => onchange(el.value));
+    return el;
+}
+
 /** A row in a settings list: label and description on the left, the control on the right. */
 export function row(label: string, description: string | undefined, control: Node) {
     return h("div", { class: "dc-row" },

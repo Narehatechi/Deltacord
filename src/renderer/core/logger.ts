@@ -1,4 +1,4 @@
-const STYLE = "background:#000;color:#ff8c1a;font-weight:bold;padding:1px 4px;border:1px solid #ff8c1a";
+const STYLE = "background:#000;color:#b48cff;font-weight:bold;padding:1px 4px;border:1px solid #b48cff";
 
 export function logger(area: string) {
     const tag = `%cDeltacord%c ${area}`;

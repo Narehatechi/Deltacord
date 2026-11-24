@@ -2,8 +2,9 @@ import { Native, VERSION } from "../core/native";
 import { isEnabled, Plugin, plugins, setEnabled, SettingDef } from "../core/plugins";
 import { allPluginData, core, minimizeToTray, replacePluginData, setCore, setMinimizeToTray, SettingValue } from "../core/settings";
 import { applyQuickCss } from "../core/quickCss";
+import { describeUpdate, onUpdateStatus, restartToUpdate, updateStatus } from "../core/updates";
 import { STARTUP_STYLES } from "../splash";
-import { button, downloadText, h, pickTextFile, row, select, slider, textInput, toggle } from "./dom";
+import { button, colorInput, downloadText, h, pickTextFile, row, select, slider, textInput, toggle } from "./dom";
 import { openModal } from "./modal";
 import { toast } from "./toast";
 
@@ -43,8 +44,8 @@ const PAGES: Record<Tab, () => Node> = {
                 v => setCore("startupStyle", v))),
         row("Keep running in the tray", "Closing the window hides Deltacord instead of quitting, so you still get messages.",
             toggle(minimizeToTray(), setMinimizeToTray)),
+        updateBox(),
         h("div", { class: "dc-buttons" },
-            button("Check for updates", () => { void Native.checkForUpdates(); toast("* Checking for updates..."); }),
             button("Restart Deltacord", () => void Native.relaunch())
         )
     ),
@@ -101,6 +102,23 @@ const PAGES: Record<Tab, () => Node> = {
     }
 };
 
+/** Where updates stand, kept current while the settings are open. */
+function updateBox() {
+    const line = h("div", { class: "dc-row-label" });
+    const action = h("div");
+    const box = h("div", { class: "dc-row" }, h("div", { class: "dc-row-text" }, h("div", { class: "dc-row-description" }, "Updates"), line), action);
+    const draw = () => {
+        const s = updateStatus();
+        line.textContent = describeUpdate(s);
+        action.replaceChildren(s.state === "ready"
+            ? button("Restart to update", restartToUpdate, "primary")
+            : button("Check for updates", () => void Native.checkForUpdates()));
+    };
+    draw();
+    const stop = onUpdateStatus(() => box.isConnected ? draw() : stop());
+    return box;
+}
+
 function control(p: Plugin, key: string, def: SettingDef) {
     const value = (p.store as Record<string, SettingValue>)[key];
     const set = (v: SettingValue) => { (p.store as Record<string, SettingValue>)[key] = v; };
@@ -109,6 +127,7 @@ function control(p: Plugin, key: string, def: SettingDef) {
         case "select": return select(value as string, def.options, set);
         case "slider": return slider(value as number, def.min, def.max, def.step, def.unit ?? "", set);
         case "text": return textInput(value as string, def.placeholder ?? "", set);
+        case "color": return colorInput(value as string, set);
     }
 }
 

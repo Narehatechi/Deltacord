@@ -12,6 +12,7 @@ export const IPC = {
     relaunch: "deltacord:relaunch",
     checkUpdates: "deltacord:check-updates",
     installUpdate: "deltacord:install-update",
+    updateState: "deltacord:update-state",
     screenPicked: "deltacord:screen-picked",
 
     // main process -> page
@@ -40,11 +41,12 @@ export interface ScreenSource {
 }
 
 export type UpdateStatus =
-    | { state: "checking"; }
-    | { state: "none"; }
-    | { state: "downloading"; version: string; }
+    | { state: "idle"; }
+    | { state: "checking"; manual: boolean; }
+    | { state: "none"; manual: boolean; }
+    | { state: "downloading"; version: string; percent: number; }
     | { state: "ready"; version: string; }
-    | { state: "error"; message: string; };
+    | { state: "error"; message: string; manual: boolean; };
 
 /** Settings the main process itself uses; the page keeps everything else in the same file. */
 export interface AppSettings {

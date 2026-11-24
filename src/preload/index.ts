@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
 
-import { AppInfo, IPC, PAGE_EVENTS, PageEvent } from "../shared/ipc";
+import { AppInfo, IPC, PAGE_EVENTS, PageEvent, UpdateStatus } from "../shared/ipc";
 
 /** What the page can ask of Deltacord's main process. Nothing else from Node or Electron reaches the page. */
 const api = {
@@ -21,6 +21,7 @@ const api = {
     relaunch: (): Promise<void> => ipcRenderer.invoke(IPC.relaunch),
     checkForUpdates: (): Promise<void> => ipcRenderer.invoke(IPC.checkUpdates),
     installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.installUpdate),
+    updateState: (): UpdateStatus => ipcRenderer.sendSync(IPC.updateState),
     screenPicked: (pickId: number, sourceId: string | null, audio: boolean) =>
         ipcRenderer.send(IPC.screenPicked, pickId, sourceId, audio),
     on(event: PageEvent, callback: (...args: unknown[]) => void) {
