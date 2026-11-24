@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import { AppInfo, IPC, ScreenSource, TITLE_BAR_HEIGHT } from "../shared/ipc";
 import { appSettings, getData, getQuickCss, getSettings, setAppSettings, setData, setQuickCss, setSettings } from "./storage";
+import { applySpellcheck, attachContextMenu } from "./contextMenu";
 import { cacheMedia, forgetMedia, getMedia, keepMedia } from "./media";
 import { checkForUpdates, checkIfStale, getStatus, initUpdater, installUpdate } from "./updater";
 
@@ -104,6 +105,7 @@ function createWindow() {
         win = undefined;
     });
 
+    attachContextMenu(win);
     win.webContents.setWindowOpenHandler(({ url }) => {
         openExternal(url);
         return { action: "deny" };
@@ -224,7 +226,11 @@ function setUpIpc() {
     const rendererCode = readFileSync(join(__dirname, "renderer.js"), "utf8");
     ipcMain.on(IPC.renderer, e => { e.returnValue = rendererCode; });
     ipcMain.on(IPC.settingsGet, e => { e.returnValue = getSettings(); });
-    ipcMain.handle(IPC.settingsSet, (_e, next: unknown) => setSettings(next));
+    ipcMain.handle(IPC.settingsSet, (_e, next: unknown) => {
+        const before = appSettings().spellcheck;
+        setSettings(next);
+        if (appSettings().spellcheck !== before) applySpellcheck();
+    });
     ipcMain.on(IPC.quickCssGet, e => { e.returnValue = getQuickCss(); });
     ipcMain.handle(IPC.quickCssSet, (_e, css: unknown) => { setQuickCss(css); });
     ipcMain.on(IPC.dataGet, (e, key: unknown) => { e.returnValue = getData(key); });
@@ -277,6 +283,7 @@ if (!app.requestSingleInstanceLock()) {
 
     void app.whenReady().then(() => {
         cleanUserAgent();
+        applySpellcheck();
         setUpPermissions();
         setUpIpc();
         createMenu();

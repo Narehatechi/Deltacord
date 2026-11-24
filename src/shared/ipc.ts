@@ -59,6 +59,7 @@ export type UpdateStatus =
 export interface AppSettings {
     minimizeToTray: boolean;
     nativeTitleBar: boolean;
+    spellcheck: boolean;
     window?: { x?: number; y?: number; width: number; height: number; maximized: boolean; };
 }
 

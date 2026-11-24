@@ -11,7 +11,7 @@ export interface CoreSettings {
 interface Data extends Record<string, unknown> {
     core?: Partial<CoreSettings>;
     plugins?: Record<string, Record<string, SettingValue>>;
-    app?: { minimizeToTray?: boolean; nativeTitleBar?: boolean; };
+    app?: { minimizeToTray?: boolean; nativeTitleBar?: boolean; spellcheck?: boolean; };
 }
 
 const CORE_DEFAULTS: CoreSettings = {
@@ -53,6 +53,13 @@ export function setCore<K extends keyof CoreSettings>(key: K, value: CoreSetting
 export const minimizeToTray = () => data.app?.minimizeToTray ?? true;
 
 export const nativeTitleBar = () => data.app?.nativeTitleBar ?? false;
+
+export const spellcheck = () => data.app?.spellcheck ?? true;
+
+export function setSpellcheck(value: boolean) {
+    data.app = { ...data.app, spellcheck: value };
+    changed();
+}
 
 export function setNativeTitleBar(value: boolean) {
     data.app = { ...data.app, nativeTitleBar: value };
