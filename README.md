@@ -16,6 +16,7 @@ Deltacord updates itself. When an update is ready it tells you, and installs the
 
 - **Startup animation.** DEL, TA, CORD in Determination Mono, in fourteen styles, the same as Deltacord on Android. It stays until Discord is ready.
 - **Deltacord Theme** (on by default): black, white and orange, or red with Crimson, with Determination Mono for all text.
+- **Battle Box** theme: Discord in the style of Deltacord's own windows, with square corners, black boxes with white borders, and menus that light up in your accent color.
 - **Deltavoice**: a Deltarune style text voice as you type. Pick a built-in voice or import your own sound (WAV, MP3, OGG and more), and set its pitch, wobble and volume.
 - **Deltalogger**, the message logger:
   - Deleted messages stay in the chat, in red, where they were. Edited messages show their earlier text underneath.
