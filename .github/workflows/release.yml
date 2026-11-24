@@ -32,7 +32,15 @@ jobs:
             - name: Build
               run: npm run build
 
-            - name: Package and publish
-              run: npx electron-builder --win --publish always
+            - name: Package
+              run: npx electron-builder --win --publish never
+
+            - name: Publish the release
+              shell: bash
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  version="v$(node -p "require('./package.json').version")"
+                  gh release create "$version" --target "$GITHUB_SHA" --title "Deltacord $version" \
+                      --notes "Download **Deltacord-Setup.exe** below and double-click it. Installed copies update to this automatically." \
+                      release/Deltacord-Setup.exe release/Deltacord-Setup.exe.blockmap release/latest.yml
