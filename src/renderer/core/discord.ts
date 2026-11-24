@@ -32,6 +32,7 @@ export interface Stores {
     GuildStore: { getGuild(id: string): { id: string; name: string; } | undefined; };
     GuildMemberStore: { getMember(guildId: string, userId: string): { roles: string[]; } | null; };
     MessageStore: { getMessage(channelId: string, messageId: string): unknown; };
+    SelectedChannelStore: { getChannelId(): string | undefined; };
 }
 
 const isDispatcher = filters.byProps("dispatch", "subscribe", "unsubscribe", "isDispatching");

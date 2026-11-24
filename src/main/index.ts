@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import { AppInfo, IPC, ScreenSource, TITLE_BAR_HEIGHT } from "../shared/ipc";
 import { appSettings, getData, getQuickCss, getSettings, setAppSettings, setData, setQuickCss, setSettings } from "./storage";
+import { cacheMedia, forgetMedia, getMedia, keepMedia } from "./media";
 import { checkForUpdates, checkIfStale, getStatus, initUpdater, installUpdate } from "./updater";
 
 const DISCORD_URL = "https://discord.com/app";
@@ -248,6 +249,10 @@ function setUpIpc() {
     ipcMain.handle(IPC.checkUpdates, () => checkForUpdates(true));
     ipcMain.handle(IPC.installUpdate, () => installUpdate());
     ipcMain.on(IPC.updateState, e => { e.returnValue = getStatus(); });
+    ipcMain.on(IPC.mediaCache, (_e, url: unknown, key: unknown) => void cacheMedia(url, key));
+    ipcMain.handle(IPC.mediaKeep, (_e, keys: unknown) => keepMedia(keys));
+    ipcMain.handle(IPC.mediaGet, (_e, key: unknown) => getMedia(key));
+    ipcMain.handle(IPC.mediaForget, (_e, keys: unknown) => forgetMedia(keys));
     ipcMain.on(IPC.titleBarColors, (_e, color: unknown, symbolColor: unknown, height: unknown) => {
         if (!customTitleBar || !win || typeof color !== "string" || typeof symbolColor !== "string") return;
         if (!HEX.test(color) || !HEX.test(symbolColor) || process.platform === "darwin") return;

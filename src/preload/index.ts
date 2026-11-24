@@ -22,6 +22,12 @@ const api = {
     checkForUpdates: (): Promise<void> => ipcRenderer.invoke(IPC.checkUpdates),
     installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.installUpdate),
     updateState: (): UpdateStatus => ipcRenderer.sendSync(IPC.updateState),
+    media: {
+        cache: (url: string, key: string) => ipcRenderer.send(IPC.mediaCache, url, key),
+        keep: (keys: string[]): Promise<number> => ipcRenderer.invoke(IPC.mediaKeep, keys),
+        get: (key: string): Promise<string> => ipcRenderer.invoke(IPC.mediaGet, key),
+        forget: (keys: string[] | "all"): Promise<void> => ipcRenderer.invoke(IPC.mediaForget, keys)
+    },
     setTitleBarColors: (color: string, symbolColor: string, height: number) => ipcRenderer.send(IPC.titleBarColors, color, symbolColor, height),
     screenPicked: (pickId: number, sourceId: string | null, audio: boolean) =>
         ipcRenderer.send(IPC.screenPicked, pickId, sourceId, audio),

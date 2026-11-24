@@ -1,6 +1,9 @@
 import { FluxEvent, jumpLink, navigate, store } from "../../core/discord";
+import { Native } from "../../core/native";
 import { definePlugin } from "../../core/plugins";
-import { addEntry, channelLabel, forget, fromDiscordStore, fromRaw, load, RawMessage, recall, remember, sentAt, setLimits, Snapshot, unload } from "./log";
+import { clearInline, INLINE_CSS, showDeleted, showEdit } from "./inline";
+import { addEntry, channelLabel, forget, fromDiscordStore, fromRaw, imageKeys, load, RawMessage, recall, remember, sentAt, setKeptImages, setLimits, Snapshot, unload } from "./log";
+import { KeepImages, prefetchImages, stopPrefetching } from "./media";
 import { openLog, VIEWER_CSS } from "./viewer";
 
 const ids = (list: string) => new Set(list.split(/[\s,]+/).filter(Boolean));
@@ -8,10 +11,24 @@ const ids = (list: string) => new Set(list.split(/[\s,]+/).filter(Boolean));
 const plugin = definePlugin({
     id: "deltalogger",
     name: "Deltalogger",
-    description: "Keeps deleted messages, every edit and ghost pings, even after a restart, in a searchable log. Ctrl+Alt+L opens it.",
+    description: "The message logger: deleted messages stay in the chat in red, edits show their old text, pictures are saved, ghost pings are caught, and everything is kept in a searchable log, even after a restart. Ctrl+Alt+L opens it.",
     settings: {
+        showDeletedInChat: { type: "boolean", label: "Keep deleted messages in the chat", description: "A red copy stays where the message was, until you leave the channel.", default: true },
+        showEditsInChat: { type: "boolean", label: "Show earlier versions of edited messages", description: "The old text appears under the message.", default: true },
+        keepImages: {
+            type: "select",
+            label: "Save pictures",
+            description: "Discord removes a picture soon after its message is deleted, so Deltalogger copies them ahead of time.",
+            default: "viewed",
+            options: [
+                { label: "In DMs and the channel I'm looking at", value: "viewed" },
+                { label: "Only in DMs", value: "dms" },
+                { label: "Everywhere (uses more data)", value: "everywhere" },
+                { label: "Don't save pictures", value: "off" }
+            ]
+        },
         logDeletes: { type: "boolean", label: "Log deleted messages", default: true },
-        logEdits: { type: "boolean", label: "Log edits", description: "Keep the old text of edited messages.", default: true },
+        logEdits: { type: "boolean", label: "Log edits", default: true },
         logBulkDeletes: { type: "boolean", label: "Log bulk deletes", description: "Messages removed many at once, for example by moderators or bots.", default: true },
         scope: {
             type: "select",
@@ -37,23 +54,19 @@ const plugin = definePlugin({
             options: [{ label: "Never", value: "never" }, { label: "In DMs", value: "dms" }, { label: "Everywhere", value: "everywhere" }]
         },
         notifyEdits: { type: "boolean", label: "Notify me about edits in DMs", default: false },
-        maxEntries: { type: "slider", label: "Entries to keep", default: 2500, min: 500, max: 10000, step: 500, unit: "" },
-        keepDays: { type: "slider", label: "Days to keep", default: 30, min: 1, max: 365, step: 1, unit: " days" },
-        cacheSize: { type: "slider", label: "Recent messages to remember", description: "So deleted ones can be recovered. Higher uses more memory.", default: 5000, min: 1000, max: 20000, step: 1000, unit: "" }
+        maxEntries: { type: "slider", label: "Entries to keep", default: 5000, min: 500, max: 20000, step: 500, unit: "" },
+        keepDays: { type: "slider", label: "Days to keep", default: 60, min: 1, max: 365, step: 1, unit: " days" },
+        cacheSize: { type: "slider", label: "Recent messages to remember", description: "So deleted ones can be recovered. Higher uses more memory.", default: 8000, min: 1000, max: 30000, step: 1000, unit: "" }
     },
     actions: [{ label: "Open the log", run: () => openLog() }],
-    css: VIEWER_CSS,
+    css: VIEWER_CSS + INLINE_CSS,
     flux: {
         MESSAGE_CREATE(e: FluxEvent) {
             if (e.optimistic) return;
-            const s = fromRaw(e.message as RawMessage);
-            if (s) remember(s);
+            seen(e.message as RawMessage);
         },
         LOAD_MESSAGES_SUCCESS(e: FluxEvent) {
-            for (const m of (e.messages as RawMessage[] | undefined) ?? []) {
-                const s = fromRaw(m);
-                if (s) remember(s);
-            }
+            for (const m of (e.messages as RawMessage[] | undefined) ?? []) seen(m);
         },
         MESSAGE_UPDATE(e: FluxEvent) {
             onUpdate(e.message as RawMessage);
@@ -72,10 +85,13 @@ const plugin = definePlugin({
     },
     stop() {
         document.removeEventListener("keydown", onKey, true);
+        stopPrefetching();
+        clearInline();
         unload();
     },
     onSettingChange(key) {
         if (key === "cacheSize" || key === "maxEntries" || key === "keepDays") applyLimits();
+        if (key === "showDeletedInChat" || key === "showEditsInChat") clearInline();
     }
 });
 
@@ -91,6 +107,13 @@ function onKey(e: KeyboardEvent) {
     }
 }
 
+function seen(m: RawMessage) {
+    const s = fromRaw(m);
+    if (!s) return;
+    remember(s);
+    if (s.attachments.some(a => a.image) && shouldLog(s)) prefetchImages(s, plugin.store.keepImages as KeepImages);
+}
+
 function shouldLog(s: Snapshot) {
     const st = plugin.store;
     if (st.scope === "dms" && s.guildId) return false;
@@ -103,7 +126,7 @@ function shouldLog(s: Snapshot) {
 
 function notify(title: string, s: Snapshot, body: string) {
     const avatar = store("UserStore")?.getUser(s.authorId)?.getAvatarURL?.(undefined, 64);
-    const n = new Notification(title, { body: body || "(no text)", icon: avatar, silent: false });
+    const n = new Notification(title, { body: body || "(no text)", icon: avatar });
     n.onclick = () => {
         window.focus();
         navigate(jumpLink(s.guildId, s.channelId));
@@ -119,7 +142,18 @@ function onDelete(id: string, channelId: string, bulk: boolean) {
     const st = plugin.store;
     const ghostPing = st.ghostPings && s.mentionsMe && Date.now() - sentAt(s) <= st.ghostPingMinutes * 60_000;
     if (!ghostPing && !(bulk ? st.logBulkDeletes : st.logDeletes)) return;
-    addEntry("deleted", s, { ghostPing });
+
+    const entry = addEntry("deleted", s, { ghostPing, bulk });
+    const keys = imageKeys(entry);
+    if (keys.length) void Native.media.keep(keys).then(n => { if (n) setKeptImages(entry, n); });
+
+    if (st.showDeletedInChat) {
+        try {
+            showDeleted(channelId, id, ghostPing, () => openLog({ messageId: id }));
+        } catch {
+            // Showing it in the chat is a bonus; the log already has it.
+        }
+    }
 
     if (ghostPing) notify(`Ghost ping from ${s.authorName}`, s, `${channelLabel(s.channelId)}: ${s.content}`);
     else if (!bulk && (st.notifyDeletes === "everywhere" || (st.notifyDeletes === "dms" && !s.guildId)))
@@ -132,8 +166,15 @@ function onUpdate(m: RawMessage | undefined) {
     const now = fromRaw(m, old);
     if (!now) return;
     remember(now);
-    if (!old || m.content === undefined || m.content === old.content || !plugin.store.logEdits || !shouldLog(now)) return;
-    addEntry("edited", now, { before: old.content });
+    if (!old || m.content === undefined || m.content === old.content || !shouldLog(now)) return;
+    if (plugin.store.logEdits) addEntry("edited", now, { before: old.content });
+    if (plugin.store.showEditsInChat) {
+        try {
+            showEdit(now.channelId, now.id, old.content);
+        } catch {
+            // As above: the log has it.
+        }
+    }
     if (plugin.store.notifyEdits && !now.guildId) notify(`${now.authorName} edited a message`, now, `${old.content}\n→ ${now.content}`);
 }
 

@@ -17,7 +17,12 @@ Deltacord updates itself. When an update is ready it tells you, and installs the
 - **Startup animation.** DEL, TA, CORD in Determination Mono, in fourteen styles, the same as Deltacord on Android. It stays until Discord is ready.
 - **Deltacord Theme** (on by default): black, white and orange, or red with Crimson, with Determination Mono for all text.
 - **Deltavoice**: a Deltarune style text voice as you type. Pick a built-in voice or import your own sound (WAV, MP3, OGG and more), and set its pitch, wobble and volume.
-- **Deltalogger**: keeps deleted messages, every edit and ghost pings, even after a restart, in a searchable log (Ctrl+Alt+L).
+- **Deltalogger**, the message logger:
+  - Deleted messages stay in the chat, in red, where they were. Edited messages show their earlier text underneath.
+  - Pictures are saved before Discord can delete them (in DMs and the channel you're looking at, or everywhere).
+  - Ghost pings are caught and you get a notification.
+  - Everything goes into a log that survives restarts (Ctrl+Alt+L): search, filter by kind, person and place, full edit histories, image previews, replies, stickers and embeds, jump to where it happened, and export as JSON or text.
+  - Choose what to log, where, who to ignore, how long to keep it and when to be notified.
 - **TensionBar**: a TP gauge above the message box that fills as you near the length limit.
 - **QuickCSS**: your own CSS on top of everything.
 - **Packs**: save your plugins, their settings, your QuickCSS and your Deltavoice sound as one `.deltapack` file to share or back up.

@@ -14,6 +14,10 @@ export const IPC = {
     installUpdate: "deltacord:install-update",
     updateState: "deltacord:update-state",
     titleBarColors: "deltacord:title-bar-colors",
+    mediaCache: "deltacord:media-cache",
+    mediaKeep: "deltacord:media-keep",
+    mediaGet: "deltacord:media-get",
+    mediaForget: "deltacord:media-forget",
     screenPicked: "deltacord:screen-picked",
 
     // main process -> page
