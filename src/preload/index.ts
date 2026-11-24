@@ -22,6 +22,7 @@ const api = {
     checkForUpdates: (): Promise<void> => ipcRenderer.invoke(IPC.checkUpdates),
     installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.installUpdate),
     updateState: (): UpdateStatus => ipcRenderer.sendSync(IPC.updateState),
+    setTitleBarColors: (color: string, symbolColor: string, height: number) => ipcRenderer.send(IPC.titleBarColors, color, symbolColor, height),
     screenPicked: (pickId: number, sourceId: string | null, audio: boolean) =>
         ipcRenderer.send(IPC.screenPicked, pickId, sourceId, audio),
     on(event: PageEvent, callback: (...args: unknown[]) => void) {

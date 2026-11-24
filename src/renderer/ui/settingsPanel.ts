@@ -1,6 +1,6 @@
 import { Native, VERSION } from "../core/native";
 import { isEnabled, Plugin, plugins, setEnabled, SettingDef } from "../core/plugins";
-import { allPluginData, core, minimizeToTray, replacePluginData, setCore, setMinimizeToTray, SettingValue } from "../core/settings";
+import { allPluginData, core, minimizeToTray, nativeTitleBar, replacePluginData, setCore, setMinimizeToTray, setNativeTitleBar, SettingValue } from "../core/settings";
 import { applyQuickCss } from "../core/quickCss";
 import { describeUpdate, onUpdateStatus, restartToUpdate, updateStatus } from "../core/updates";
 import { STARTUP_STYLES } from "../splash";
@@ -44,6 +44,8 @@ const PAGES: Record<Tab, () => Node> = {
                 v => setCore("startupStyle", v))),
         row("Keep running in the tray", "Closing the window hides Deltacord instead of quitting, so you still get messages.",
             toggle(minimizeToTray(), setMinimizeToTray)),
+        row("Use the Windows title bar", "Show Windows' own title bar instead of Deltacord's. Restart Deltacord to apply.",
+            toggle(nativeTitleBar(), v => { setNativeTitleBar(v); toast("* Restart Deltacord to change the title bar.", { label: "Restart", run: () => void Native.relaunch() }); })),
         updateBox(),
         h("div", { class: "dc-buttons" },
             button("Restart Deltacord", () => void Native.relaunch())

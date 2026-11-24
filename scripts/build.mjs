@@ -37,7 +37,7 @@ await Promise.all([
         format: "iife",
         target: "chrome140",
         sourcemap: false,
-        loader: { ".ttf": "base64", ".css": "text" }
+        loader: { ".ttf": "base64", ".css": "text", ".png": "dataurl" }
     })
 ]);
 

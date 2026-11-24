@@ -4,7 +4,7 @@ import { app, BrowserWindow, desktopCapturer, ipcMain, Menu, session, shell, Tra
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { AppInfo, IPC, ScreenSource } from "../shared/ipc";
+import { AppInfo, IPC, ScreenSource, TITLE_BAR_HEIGHT } from "../shared/ipc";
 import { appSettings, getData, getQuickCss, getSettings, setAppSettings, setData, setQuickCss, setSettings } from "./storage";
 import { checkForUpdates, checkIfStale, getStatus, initUpdater, installUpdate } from "./updater";
 
@@ -53,6 +53,10 @@ function saveWindowState() {
     setAppSettings({ window: { x, y, width, height, maximized } });
 }
 
+const HEX = /^#[0-9a-f]{6}$/i;
+/** Set once at startup: switching title bars needs a restart. */
+const customTitleBar = !appSettings().nativeTitleBar;
+
 function createWindow() {
     const saved = appSettings().window;
     win = new BrowserWindow({
@@ -66,6 +70,10 @@ function createWindow() {
         icon: join(ASSETS, process.platform === "win32" ? "icon.ico" : "icon.png"),
         backgroundColor: "#000000",
         autoHideMenuBar: true,
+        ...(customTitleBar ? {
+            titleBarStyle: "hidden" as const,
+            titleBarOverlay: { color: "#000000", symbolColor: "#ffffff", height: TITLE_BAR_HEIGHT }
+        } : {}),
         show: false,
         webPreferences: {
             preload: join(__dirname, "preload.js"),
@@ -226,7 +234,8 @@ function setUpIpc() {
             electron: process.versions.electron,
             chrome: process.versions.chrome,
             platform: process.platform,
-            packaged: app.isPackaged
+            packaged: app.isPackaged,
+            customTitleBar
         };
         e.returnValue = info;
     });
@@ -239,6 +248,12 @@ function setUpIpc() {
     ipcMain.handle(IPC.checkUpdates, () => checkForUpdates(true));
     ipcMain.handle(IPC.installUpdate, () => installUpdate());
     ipcMain.on(IPC.updateState, e => { e.returnValue = getStatus(); });
+    ipcMain.on(IPC.titleBarColors, (_e, color: unknown, symbolColor: unknown, height: unknown) => {
+        if (!customTitleBar || !win || typeof color !== "string" || typeof symbolColor !== "string") return;
+        if (!HEX.test(color) || !HEX.test(symbolColor) || process.platform === "darwin") return;
+        const h = typeof height === "number" && Number.isInteger(height) && height >= 24 && height <= 64 ? height : TITLE_BAR_HEIGHT;
+        win.setTitleBarOverlay({ color, symbolColor, height: h });
+    });
 }
 
 if (!app.requestSingleInstanceLock()) {

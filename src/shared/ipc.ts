@@ -13,6 +13,7 @@ export const IPC = {
     checkUpdates: "deltacord:check-updates",
     installUpdate: "deltacord:install-update",
     updateState: "deltacord:update-state",
+    titleBarColors: "deltacord:title-bar-colors",
     screenPicked: "deltacord:screen-picked",
 
     // main process -> page
@@ -31,6 +32,8 @@ export interface AppInfo {
     chrome: string;
     platform: string;
     packaged: boolean;
+    /** Deltacord draws its own title bar (Windows still draws the window buttons). */
+    customTitleBar: boolean;
 }
 
 export interface ScreenSource {
@@ -51,7 +54,11 @@ export type UpdateStatus =
 /** Settings the main process itself uses; the page keeps everything else in the same file. */
 export interface AppSettings {
     minimizeToTray: boolean;
+    nativeTitleBar: boolean;
     window?: { x?: number; y?: number; width: number; height: number; maximized: boolean; };
 }
+
+/** Height of Deltacord's own title bar, in pixels. */
+export const TITLE_BAR_HEIGHT = 32;
 
 export const DATA_KEY = /^[a-z0-9_-]{1,64}$/i;

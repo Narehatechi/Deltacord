@@ -18,6 +18,7 @@ import "./plugins";
 import { splashReadyWhen, startSplash } from "./splash";
 import { loadFont } from "./ui/font";
 import { pickScreen } from "./ui/screenPicker";
+import { setUpTitleBar } from "./ui/titleBar";
 import { openSettings } from "./ui/settingsPanel";
 import uiCss from "./ui/ui.css";
 
@@ -26,6 +27,7 @@ log.info(`Deltacord ${VERSION} starting`);
 
 setStyle("ui", uiCss);
 void loadFont();
+setUpTitleBar();
 
 if (core("startupAnimation")) {
     startSplash(core("startupStyle"));

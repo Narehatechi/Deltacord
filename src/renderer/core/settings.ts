@@ -11,7 +11,7 @@ export interface CoreSettings {
 interface Data extends Record<string, unknown> {
     core?: Partial<CoreSettings>;
     plugins?: Record<string, Record<string, SettingValue>>;
-    app?: { minimizeToTray?: boolean; };
+    app?: { minimizeToTray?: boolean; nativeTitleBar?: boolean; };
 }
 
 const CORE_DEFAULTS: CoreSettings = {
@@ -51,6 +51,13 @@ export function setCore<K extends keyof CoreSettings>(key: K, value: CoreSetting
 }
 
 export const minimizeToTray = () => data.app?.minimizeToTray ?? true;
+
+export const nativeTitleBar = () => data.app?.nativeTitleBar ?? false;
+
+export function setNativeTitleBar(value: boolean) {
+    data.app = { ...data.app, nativeTitleBar: value };
+    changed();
+}
 
 export function setMinimizeToTray(value: boolean) {
     data.app = { ...data.app, minimizeToTray: value };

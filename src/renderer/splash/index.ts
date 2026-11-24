@@ -906,7 +906,7 @@ function pickRun(setting: string) {
 
 async function mount(style: string) {
     const el = document.createElement("canvas");
-    el.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:2147483647;background:#000;cursor:default";
+    el.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:2147483646;background:#000;cursor:default";
     document.documentElement.append(el);
     canvas = el;
     g = el.getContext("2d")!;
