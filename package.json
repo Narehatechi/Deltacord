@@ -1,0 +1,68 @@
+{
+    "name": "deltacord",
+    "productName": "Deltacord",
+    "version": "0.1.0",
+    "description": "Deltacord, a Discord client of its own with a Deltarune soul.",
+    "author": "Narehatechi",
+    "license": "MIT",
+    "private": true,
+    "main": "dist/main.js",
+    "scripts": {
+        "build": "node scripts/build.mjs",
+        "typecheck": "tsc --noEmit",
+        "start": "node scripts/build.mjs && electron .",
+        "dist": "node scripts/build.mjs && electron-builder --win --publish never"
+    },
+    "dependencies": {
+        "electron-updater": "^6.6.2"
+    },
+    "devDependencies": {
+        "@types/node": "^22.15.0",
+        "electron": "45.3.3",
+        "electron-builder": "^26.0.12",
+        "esbuild": "0.27.7",
+        "typescript": "^5.9.2"
+    },
+    "build": {
+        "appId": "com.narehatechi.deltacord",
+        "productName": "Deltacord",
+        "copyright": "Copyright © 2026 Narehatechi",
+        "directories": {
+            "output": "release",
+            "buildResources": "build"
+        },
+        "files": [
+            "dist/**",
+            "package.json"
+        ],
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "build/icon.ico",
+            "artifactName": "Deltacord-Setup.${ext}"
+        },
+        "nsis": {
+            "oneClick": true,
+            "perMachine": false,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Deltacord",
+            "runAfterFinish": true,
+            "deleteAppDataOnUninstall": false
+        },
+        "publish": [
+            {
+                "provider": "github",
+                "owner": "Narehatechi",
+                "repo": "deltacord",
+                "releaseType": "release"
+            }
+        ]
+    }
+}

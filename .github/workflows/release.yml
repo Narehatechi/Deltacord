@@ -1,0 +1,38 @@
+name: Release
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    windows:
+        name: Build the Windows app
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - name: Install
+              run: npm install --no-audit --no-fund
+
+            - name: Type-check
+              run: npm run typecheck
+
+            - name: Set the version
+              shell: bash
+              run: npm version "0.1.${{ github.run_number }}" --no-git-tag-version
+
+            - name: Build
+              run: npm run build
+
+            - name: Package and publish
+              run: npx electron-builder --win --publish always
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
