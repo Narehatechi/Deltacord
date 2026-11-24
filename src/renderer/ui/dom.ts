@@ -72,17 +72,23 @@ export function downloadText(name: string, text: string, type = "application/jso
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Asks for a file and returns its text, or null if none was picked. */
-export function pickTextFile(accept: string): Promise<string | null> {
+/** Asks for a file, or resolves null if none was picked. */
+export function pickFile(accept: string): Promise<File | null> {
     return new Promise(resolve => {
         const input = h("input", { type: "file", accept, style: "display:none" });
-        input.addEventListener("change", async () => {
-            const file = input.files?.[0];
+        input.addEventListener("change", () => {
+            const file = input.files?.[0] ?? null;
             input.remove();
-            resolve(file ? await file.text() : null);
+            resolve(file);
         });
         input.addEventListener("cancel", () => { input.remove(); resolve(null); });
         document.body.append(input);
         input.click();
     });
+}
+
+/** Asks for a file and returns its text, or null if none was picked. */
+export async function pickTextFile(accept: string): Promise<string | null> {
+    const file = await pickFile(accept);
+    return file ? file.text() : null;
 }

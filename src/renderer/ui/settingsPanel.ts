@@ -79,7 +79,7 @@ const PAGES: Record<Tab, () => Node> = {
 
     packs: () => h("div", null,
         h("h2", { class: "dc-section-title" }, "Deltacord packs"),
-        h("p", { class: "dc-note" }, "A pack is one .deltapack file with your plugins, their settings and your QuickCSS, to share or keep as a backup. Your account is never included."),
+        h("p", { class: "dc-note" }, "A pack is one .deltapack file with your plugins, their settings, your QuickCSS and your Deltavoice sound, to share or keep as a backup. Your account is never included."),
         h("div", { class: "dc-buttons" },
             button("Export pack", exportPack, "primary"),
             button("Import pack", () => void importPack())
@@ -142,7 +142,11 @@ interface Pack {
     createdAt: number;
     plugins: Record<string, Record<string, SettingValue>>;
     quickCss: string;
+    /** Saved plugin files that belong in a pack, like a Deltavoice sound. */
+    data?: Record<string, string>;
 }
+
+const PACK_DATA_KEYS = ["deltavoice-sound"];
 
 const isPack = (v: unknown): v is Pack => {
     if (!v || typeof v !== "object") return false;
@@ -151,7 +155,12 @@ const isPack = (v: unknown): v is Pack => {
 };
 
 function exportPack() {
-    const pack: Pack = { format: "deltacord-pack", version: 2, createdAt: Date.now(), plugins: allPluginData(), quickCss: Native.quickCss.get() };
+    const data: Record<string, string> = {};
+    for (const key of PACK_DATA_KEYS) {
+        const value = Native.data.get(key);
+        if (value) data[key] = value;
+    }
+    const pack: Pack = { format: "deltacord-pack", version: 2, createdAt: Date.now(), plugins: allPluginData(), quickCss: Native.quickCss.get(), data };
     downloadText("my-deltacord.deltapack", JSON.stringify(pack, null, 4));
 }
 
@@ -167,6 +176,10 @@ async function importPack() {
     if (!isPack(pack)) return toast("* That file isn't a Deltacord pack.");
     replacePluginData(pack.plugins);
     await Native.quickCss.set(pack.quickCss);
+    for (const key of PACK_DATA_KEYS) {
+        const value = pack.data?.[key];
+        if (typeof value === "string") await Native.data.set(key, value);
+    }
     toast("* Pack loaded. Restarting...");
     setTimeout(() => void Native.relaunch(), 1200);
 }
