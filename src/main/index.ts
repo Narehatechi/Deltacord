@@ -129,7 +129,10 @@ function watchLoading(w: BrowserWindow) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let retries = 0;
     const stop = () => clearTimeout(timer);
-    wc.on("did-start-loading", () => {
+    // Only a new page in the window itself counts: Discord's own frames and in-app navigation keep loading
+    // things all the time.
+    wc.on("did-start-navigation", details => {
+        if (!details.isMainFrame || details.isSameDocument) return;
         stop();
         timer = setTimeout(() => {
             if (w.isDestroyed()) return;
@@ -141,6 +144,9 @@ function watchLoading(w: BrowserWindow) {
         }, 25_000);
     });
     wc.on("dom-ready", () => { stop(); retries = 0; });
+    // Discord asks before leaving the page during a call. When Deltacord is really quitting (to update,
+    // or from the tray), that question would silently keep it open, so skip it.
+    wc.on("will-prevent-unload", e => { if (quitting) e.preventDefault(); });
     wc.on("did-fail-load", (_e, code, description, url, isMainFrame) => {
         if (isMainFrame && code !== -3) log(`Discord's page failed to load: ${description} (${code}) ${url}`);
     });
