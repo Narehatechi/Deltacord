@@ -17,7 +17,7 @@ let manualCheck = false;
 let lastPercent = -1;
 
 /** A small log in Deltacord's folder, so a failed update can be looked into later. */
-function log(line: string) {
+export function log(line: string) {
     try {
         if (existsSync(LOG_FILE) && statSync(LOG_FILE).size > 256 * 1024) renameSync(LOG_FILE, `${LOG_FILE}.old`);
         appendFileSync(LOG_FILE, `${new Date().toISOString()} ${line}\n`);

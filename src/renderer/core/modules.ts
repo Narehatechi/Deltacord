@@ -143,7 +143,48 @@ function watchChunkList(list: unknown[] & { push: (...items: unknown[]) => numbe
     });
 }
 
+/**
+ * Discord's loader keeps the setup functions of its first modules (the dispatcher and most stores among
+ * them) inside its own file and no longer exposes its module cache. It does hand that table to its
+ * require function as `require.m` before running any of them, so Deltacord catches that assignment,
+ * wraps everything already in the table and anything added to it later.
+ */
+function watchModuleTables() {
+    const seen = new WeakSet<object>();
+    Object.defineProperty(Function.prototype, "m", {
+        configurable: true,
+        enumerable: false,
+        set(this: Require, table: unknown) {
+            let value = table;
+            try {
+                if (table && typeof table === "object" && !seen.has(table) && /\/assets\//.test(new Error().stack ?? "")) {
+                    seen.add(table);
+                    const modules = table as ModuleMap;
+                    for (const id of Object.keys(modules)) modules[id] = wrap(modules[id]);
+                    require ??= this;
+                    value = new Proxy(modules, {
+                        set(target, id, factory) {
+                            (target as Record<PropertyKey, unknown>)[id] = typeof factory === "function" ? wrap(factory as Factory) : factory;
+                            return true;
+                        }
+                    });
+                    log.info("Watching Discord's loader");
+                }
+            } catch (err) {
+                log.error("Couldn't watch Discord's loader", err);
+                value = table;
+            }
+            Object.defineProperty(this, "m", { value, writable: true, configurable: true, enumerable: true });
+        }
+    });
+}
+
 export function startWatching() {
+    try {
+        watchModuleTables();
+    } catch (err) {
+        log.error("Couldn't watch Discord's loader", err);
+    }
     const NAME = "webpackChunkdiscord_app";
     const host = window as unknown as Record<string, unknown>;
     const existing = host[NAME];

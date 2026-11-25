@@ -920,6 +920,13 @@ async function mount(style: string) {
 
 /** Plays the animation over the page until splashReadyWhen's check says Discord is ready. */
 export function startSplash(style: string) {
-    if (document.documentElement) void mount(style);
-    else document.addEventListener("readystatechange", () => void mount(style), { once: true });
+    // Start as soon as the page has a root element, not when it finishes reading: if one of Discord's
+    // files is slow to arrive, the animation should be on screen meanwhile, not a black window.
+    if (document.documentElement) return void mount(style);
+    const observer = new MutationObserver(() => {
+        if (!document.documentElement) return;
+        observer.disconnect();
+        void mount(style);
+    });
+    observer.observe(document, { childList: true });
 }

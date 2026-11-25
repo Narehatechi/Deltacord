@@ -8,7 +8,7 @@ import { AppInfo, IPC, ScreenSource, TITLE_BAR_HEIGHT } from "../shared/ipc";
 import { appSettings, getData, getQuickCss, getSettings, setAppSettings, setData, setQuickCss, setSettings } from "./storage";
 import { applySpellcheck, attachContextMenu } from "./contextMenu";
 import { cacheMedia, forgetMedia, getMedia, keepMedia } from "./media";
-import { checkForUpdates, checkIfStale, getStatus, initUpdater, installUpdate } from "./updater";
+import { checkForUpdates, checkIfStale, getStatus, initUpdater, installUpdate, log } from "./updater";
 
 const DISCORD_URL = "https://discord.com/app";
 const DISCORD_HOSTS = /^(?:[a-z0-9-]+\.)?discord(?:app)?\.com$/i;
@@ -116,7 +116,45 @@ function createWindow() {
         openExternal(url);
     });
 
+    watchLoading(win);
     void win.loadURL(DISCORD_URL);
+}
+
+/**
+ * If Discord's page stops partway through loading (it can happen on the first start after an update, when
+ * old cached files no longer match), reload it instead of leaving a black window. Twice at most.
+ */
+function watchLoading(w: BrowserWindow) {
+    const wc = w.webContents;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let retries = 0;
+    const stop = () => clearTimeout(timer);
+    wc.on("did-start-loading", () => {
+        stop();
+        timer = setTimeout(() => {
+            if (w.isDestroyed()) return;
+            if (retries >= 2) return log("Discord's page is still loading after two reloads");
+            retries++;
+            log(`Discord's page stalled while loading; reloading (try ${retries})`);
+            if (retries === 1) wc.reloadIgnoringCache();
+            else void wc.session.clearCache().then(() => wc.reloadIgnoringCache());
+        }, 25_000);
+    });
+    wc.on("dom-ready", () => { stop(); retries = 0; });
+    wc.on("did-fail-load", (_e, code, description, url, isMainFrame) => {
+        if (isMainFrame && code !== -3) log(`Discord's page failed to load: ${description} (${code}) ${url}`);
+    });
+    wc.on("render-process-gone", (_e, details) => log(`The page's process stopped: ${details.reason} (${details.exitCode})`));
+    wc.on("unresponsive", () => log("The page stopped responding"));
+}
+
+/** Runs one startup step; a failure is logged instead of stopping Deltacord from opening. */
+function step(name: string, run: () => void) {
+    try {
+        run();
+    } catch (err) {
+        log(`Startup step "${name}" failed: ${err instanceof Error ? err.stack : String(err)}`);
+    }
 }
 
 function updateMenuItem(): Electron.MenuItemConstructorOptions {
@@ -229,7 +267,7 @@ function setUpIpc() {
     ipcMain.handle(IPC.settingsSet, (_e, next: unknown) => {
         const before = appSettings().spellcheck;
         setSettings(next);
-        if (appSettings().spellcheck !== before) applySpellcheck();
+        if (appSettings().spellcheck !== before) step("spell check", applySpellcheck);
     });
     ipcMain.on(IPC.quickCssGet, e => { e.returnValue = getQuickCss(); });
     ipcMain.handle(IPC.quickCssSet, (_e, css: unknown) => { setQuickCss(css); });
@@ -282,13 +320,13 @@ if (!app.requestSingleInstanceLock()) {
     app.on("activate", showWindow);
 
     void app.whenReady().then(() => {
-        cleanUserAgent();
-        applySpellcheck();
-        setUpPermissions();
+        step("user agent", cleanUserAgent);
+        step("permissions", setUpPermissions);
         setUpIpc();
-        createMenu();
+        step("menu", createMenu);
         createWindow();
-        createTray();
+        step("spell check", applySpellcheck);
+        step("tray", createTray);
         initUpdater({
             onChange(status) {
                 win?.webContents.send(IPC.updateStatus, status);
