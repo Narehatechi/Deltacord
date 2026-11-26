@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ContextMenuParams, ipcMain, Menu, MenuItemConstructorOptions, session, shell } from "electron";
 
 import { ContextMenuAction, ContextMenuInfo, IPC } from "../shared/ipc";
+import { saveImage } from "./images";
 import { appSettings } from "./storage";
 
 /** Turns spell checking on or off, in the languages Windows is set to (falling back to English). */
@@ -43,16 +44,18 @@ function run(win: BrowserWindow, p: ContextMenuParams, action: ContextMenuAction
             if (isWeb(p.linkURL)) void shell.openExternal(p.linkURL);
             return;
         case "copyLink":
-            if (isWeb(p.linkURL)) clipboard.writeText(p.linkURL);
+            if (isWeb(p.linkURL)) void clipboard.writeText(p.linkURL);
             return;
         case "copyImage":
             if (p.mediaType === "image") wc.copyImageAt(p.x, p.y);
             return;
         case "saveImage":
-            if (p.mediaType === "image" && isWeb(p.srcURL)) wc.downloadURL(p.srcURL);
+            if (p.mediaType !== "image" || !isWeb(p.srcURL)) return;
+            // Discord's pictures: the full-size original. Anything else: the usual download.
+            saveImage(win, p.srcURL).catch(() => wc.downloadURL(p.srcURL));
             return;
         case "copyImageLink":
-            if (p.mediaType === "image" && isWeb(p.srcURL)) clipboard.writeText(p.srcURL);
+            if (p.mediaType === "image" && isWeb(p.srcURL)) void clipboard.writeText(p.srcURL);
             return;
     }
 }

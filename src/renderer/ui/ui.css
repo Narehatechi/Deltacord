@@ -455,3 +455,9 @@
 .dc-cm-item.dc-cm-disabled .dc-cm-hint {
     color: #444;
 }
+
+/* Entries Deltacord adds to Discord's own menus. */
+.dc-menu-item:hover {
+    background: var(--menu-item-default-hover-bg, var(--brand-500, #5865f2));
+    color: var(--white, #fff);
+}

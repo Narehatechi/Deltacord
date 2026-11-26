@@ -29,6 +29,11 @@ const api = {
         forget: (keys: string[] | "all"): Promise<void> => ipcRenderer.invoke(IPC.mediaForget, keys)
     },
     setTitleBarColors: (color: string, symbolColor: string, height: number) => ipcRenderer.send(IPC.titleBarColors, color, symbolColor, height),
+    images: {
+        save: (url: string): Promise<string> => ipcRenderer.invoke(IPC.imageSave, url),
+        copy: (url: string): Promise<void> => ipcRenderer.invoke(IPC.imageCopy, url),
+        copyLink: (url: string): Promise<void> => ipcRenderer.invoke(IPC.imageCopyLink, url)
+    },
     contextMenu: {
         shown: (id: number) => ipcRenderer.send(IPC.contextMenuShown, id),
         run: (id: number, action: ContextMenuAction, arg?: string) => ipcRenderer.send(IPC.contextMenuAction, id, action, arg)

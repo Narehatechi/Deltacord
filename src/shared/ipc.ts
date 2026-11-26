@@ -20,6 +20,9 @@ export const IPC = {
     mediaForget: "deltacord:media-forget",
     screenPicked: "deltacord:screen-picked",
     contextMenuShown: "deltacord:context-menu-shown",
+    imageSave: "deltacord:image-save",
+    imageCopy: "deltacord:image-copy",
+    imageCopyLink: "deltacord:image-copy-link",
     contextMenuAction: "deltacord:context-menu-action",
 
     // main process -> page
