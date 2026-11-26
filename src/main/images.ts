@@ -55,10 +55,25 @@ async function download(url: URL): Promise<{ bytes: Buffer; type: string; }> {
     return { bytes, type: (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase() };
 }
 
-function fileName(url: URL, type: string) {
+/** What kind of file it really is, from its first bytes (some of Discord's links don't say). */
+function sniff(bytes: Buffer): string {
+    const ascii = (start: number, end: number) => bytes.subarray(start, end).toString("latin1");
+    if (bytes[0] === 0x89 && ascii(1, 4) === "PNG") return ".png";
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return ".jpg";
+    if (ascii(0, 4) === "GIF8") return ".gif";
+    if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return ".webp";
+    if (ascii(4, 8) === "ftyp") return /^(?:avif|avis)$/.test(ascii(8, 12)) ? ".avif" : /^qt/.test(ascii(8, 12)) ? ".mov" : ".mp4";
+    if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return ".webm";
+    return "";
+}
+
+function fileName(url: URL, type: string, bytes: Buffer) {
     let name = decodeURIComponent(url.pathname.split("/").pop() ?? "") || "image";
     name = name.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 120);
-    if (!extname(name) && EXTENSIONS[type]) name += EXTENSIONS[type];
+    const real = sniff(bytes) || EXTENSIONS[type] || "";
+    const current = extname(name).toLowerCase();
+    const same = current === real || (current === ".jpeg" && real === ".jpg");
+    if (real && !same) name = (current && Object.values(EXTENSIONS).includes(current) ? name.slice(0, -current.length) : name) + real;
     return name;
 }
 
@@ -73,8 +88,9 @@ export async function saveImage(win: BrowserWindow | undefined, url: unknown): P
         file = await download(u);
         from = u;
     }
-    const defaultPath = join(app.getPath("downloads"), fileName(from, file.type));
-    const options = { title: "Save image", defaultPath };
+    const defaultPath = join(app.getPath("downloads"), fileName(from, file.type, file.bytes));
+    const ext = extname(defaultPath).slice(1);
+    const options = { title: "Save image", defaultPath, filters: ext ? [{ name: ext.toUpperCase(), extensions: [ext] }, { name: "All files", extensions: ["*"] }] : [] };
     const choice = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
     if (choice.canceled || !choice.filePath) return "";
     await writeFile(choice.filePath, file.bytes);
