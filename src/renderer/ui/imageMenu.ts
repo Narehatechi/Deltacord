@@ -44,7 +44,8 @@ function makeItem(menu: Element, template: Element, id: string, label: string, r
     item.classList.add("dc-menu-item");
     for (const cls of [...item.classList]) if (/focused|disabled|danger|submenu/i.test(cls)) item.classList.remove(cls);
     labelOf(item).textContent = label;
-    item.querySelectorAll("[class*='iconContainer'], [class*='subtext'], svg, img").forEach(n => n.remove());
+    // Keep the icon's space so the label lines up with Discord's own entries; drop the icon itself.
+    item.querySelectorAll("[class*='subtext'], svg, img").forEach(n => n.remove());
     item.addEventListener("click", e => {
         e.preventDefault();
         e.stopPropagation();
@@ -58,10 +59,15 @@ function makeItem(menu: Element, template: Element, id: string, label: string, r
 /** Adds the entries; false if Discord hasn't filled the menu in yet. */
 function addTo(menu: Element, url: string): boolean {
     if (menu.querySelector("#dc-image-save")) return true;
-    const template = [...menu.querySelectorAll("[role='menuitem']")].find(i => !i.querySelector("[class*='submenu'], [class*='caret']"))
-        ?? menu.querySelector("[role='menuitem']");
-    const firstGroup = menu.querySelector("[role='group']");
-    if (!template || !firstGroup?.parentElement) return false;
+    // A plain row to copy (not one with a submenu), from a normal group: Discord's quick reactions are a
+    // group too, but laid out sideways.
+    const rows = [...menu.querySelectorAll("[role='menuitem']")].filter(i =>
+        i.querySelector("[class*='label']") && !i.querySelector("[class*='submenu'], [class*='caret']") && !/danger/i.test(i.className));
+    const anchorItem = menu.querySelector("#message-copy-link") ?? rows[rows.length - 1];
+    const template = anchorItem ?? rows[0];
+    const anchorGroup = anchorItem?.closest("[role='group']");
+    if (!template || !anchorGroup?.parentElement) return false;
+    const firstGroup = anchorGroup;
 
     const group = firstGroup.cloneNode(false) as HTMLElement;
     group.append(
@@ -91,9 +97,15 @@ function addTo(menu: Element, url: string): boolean {
         })
     );
 
+    // Its own section, right after the one with "Copy Message Link".
     const separator = menu.querySelector("[role='separator']")?.cloneNode(true) as HTMLElement | undefined;
-    firstGroup.parentElement.insertBefore(group, firstGroup);
-    if (separator) firstGroup.parentElement.insertBefore(separator, firstGroup);
+    const parent = firstGroup.parentElement as HTMLElement;
+    if (separator) {
+        parent.insertBefore(separator, firstGroup.nextSibling);
+        parent.insertBefore(group, separator.nextSibling);
+    } else {
+        parent.insertBefore(group, firstGroup.nextSibling);
+    }
     return true;
 }
 
