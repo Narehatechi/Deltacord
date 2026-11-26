@@ -11,7 +11,7 @@ export interface CoreSettings {
 interface Data extends Record<string, unknown> {
     core?: Partial<CoreSettings>;
     plugins?: Record<string, Record<string, SettingValue>>;
-    app?: { minimizeToTray?: boolean; nativeTitleBar?: boolean; spellcheck?: boolean; };
+    app?: { minimizeToTray?: boolean; nativeTitleBar?: boolean; spellcheck?: boolean; customContextMenu?: boolean; };
 }
 
 const CORE_DEFAULTS: CoreSettings = {
@@ -55,6 +55,13 @@ export const minimizeToTray = () => data.app?.minimizeToTray ?? true;
 export const nativeTitleBar = () => data.app?.nativeTitleBar ?? false;
 
 export const spellcheck = () => data.app?.spellcheck ?? true;
+
+export const customContextMenu = () => data.app?.customContextMenu ?? true;
+
+export function setCustomContextMenu(value: boolean) {
+    data.app = { ...data.app, customContextMenu: value };
+    changed();
+}
 
 export function setSpellcheck(value: boolean) {
     data.app = { ...data.app, spellcheck: value };

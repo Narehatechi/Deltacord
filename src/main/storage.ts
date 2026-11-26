@@ -49,7 +49,7 @@ export function setSettings(next: unknown) {
 }
 
 export function appSettings(): AppSettings {
-    return { minimizeToTray: true, nativeTitleBar: false, spellcheck: true, ...settings.app };
+    return { minimizeToTray: true, nativeTitleBar: false, spellcheck: true, customContextMenu: true, ...settings.app };
 }
 
 export function setAppSettings(patch: Partial<AppSettings>) {

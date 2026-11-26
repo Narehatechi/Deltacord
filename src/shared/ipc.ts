@@ -19,15 +19,18 @@ export const IPC = {
     mediaGet: "deltacord:media-get",
     mediaForget: "deltacord:media-forget",
     screenPicked: "deltacord:screen-picked",
+    contextMenuShown: "deltacord:context-menu-shown",
+    contextMenuAction: "deltacord:context-menu-action",
 
     // main process -> page
     openSettings: "deltacord:open-settings",
     pickScreen: "deltacord:pick-screen",
-    updateStatus: "deltacord:update-status"
+    updateStatus: "deltacord:update-status",
+    contextMenu: "deltacord:context-menu"
 } as const;
 
 /** Events the page may listen to. */
-export const PAGE_EVENTS = [IPC.openSettings, IPC.pickScreen, IPC.updateStatus] as const;
+export const PAGE_EVENTS = [IPC.openSettings, IPC.pickScreen, IPC.updateStatus, IPC.contextMenu] as const;
 export type PageEvent = typeof PAGE_EVENTS[number];
 
 export interface AppInfo {
@@ -60,6 +63,8 @@ export interface AppSettings {
     minimizeToTray: boolean;
     nativeTitleBar: boolean;
     spellcheck: boolean;
+    /** Deltacord's own right-click menu instead of Windows' one. */
+    customContextMenu: boolean;
     window?: { x?: number; y?: number; width: number; height: number; maximized: boolean; };
 }
 
@@ -67,3 +72,26 @@ export interface AppSettings {
 export const TITLE_BAR_HEIGHT = 32;
 
 export const DATA_KEY = /^[a-z0-9_-]{1,64}$/i;
+
+/** What the page needs to draw Deltacord's right-click menu. Actions name an entry, never a URL or text. */
+export interface ContextMenuInfo {
+    id: number;
+    x: number;
+    y: number;
+    misspelledWord: string;
+    suggestions: string[];
+    isEditable: boolean;
+    canUndo: boolean;
+    canRedo: boolean;
+    canCut: boolean;
+    canCopy: boolean;
+    canPaste: boolean;
+    canSelectAll: boolean;
+    hasSelection: boolean;
+    link: string;
+    image: string;
+}
+
+export type ContextMenuAction =
+    | "suggestion" | "addWord" | "undo" | "redo" | "cut" | "copy" | "paste" | "pastePlain" | "selectAll"
+    | "openLink" | "copyLink" | "copyImage" | "saveImage" | "copyImageLink";

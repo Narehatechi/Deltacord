@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
 
-import { AppInfo, IPC, PAGE_EVENTS, PageEvent, UpdateStatus } from "../shared/ipc";
+import { AppInfo, ContextMenuAction, IPC, PAGE_EVENTS, PageEvent, UpdateStatus } from "../shared/ipc";
 
 /** What the page can ask of Deltacord's main process. Nothing else from Node or Electron reaches the page. */
 const api = {
@@ -29,6 +29,10 @@ const api = {
         forget: (keys: string[] | "all"): Promise<void> => ipcRenderer.invoke(IPC.mediaForget, keys)
     },
     setTitleBarColors: (color: string, symbolColor: string, height: number) => ipcRenderer.send(IPC.titleBarColors, color, symbolColor, height),
+    contextMenu: {
+        shown: (id: number) => ipcRenderer.send(IPC.contextMenuShown, id),
+        run: (id: number, action: ContextMenuAction, arg?: string) => ipcRenderer.send(IPC.contextMenuAction, id, action, arg)
+    },
     screenPicked: (pickId: number, sourceId: string | null, audio: boolean) =>
         ipcRenderer.send(IPC.screenPicked, pickId, sourceId, audio),
     on(event: PageEvent, callback: (...args: unknown[]) => void) {
